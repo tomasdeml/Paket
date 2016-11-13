@@ -10,6 +10,7 @@ open System.IO.Compression
 open Paket.Domain
 open Paket.Git.CommandHelper
 open Paket.Git.Handling
+open Paket.Mercurial.Handling
 
 
 let private safeGetFromUrlCached = memoizeAsync <| safeGetFromUrl
@@ -82,6 +83,27 @@ let getSHA1OfBranch origin owner project (versionRestriction:VersionRestriction)
                         match Git.Handling.getHash repoCacheFolder tag with
                         | None -> failwithf "Could not resolve hash for tag %s in %s." tag url
                         | Some hash -> hash
+        | ModuleResolver.Origin.MercurialLink (LocalMercurialOrigin url) 
+        | ModuleResolver.Origin.MercurialLink (RemoteMercurialOrigin url) ->
+            return
+                match versionRestriction with
+                | VersionRestriction.NoVersionRestriction -> Mercurial.Handling.getHash url "default"
+                | VersionRestriction.Concrete branch -> Mercurial.Handling.getHash url branch
+                | VersionRestriction.VersionRequirement vr -> 
+                    let repoCacheFolder = Path.Combine(Constants.MercurialRepoCacheFolder,project)
+                    Paket.Mercurial.Handling.fetchCache repoCacheFolder url
+
+                    let tags = Mercurial.CommandHelper.runFullMercurialCommand repoCacheFolder "tags --quiet"
+                    let matchingVersions =
+                        tags
+                        |> Array.choose (fun s -> try Some(SemVer.Parse s) with | _ -> None)
+                        |> Array.filter vr.IsInRange
+
+                    match matchingVersions with
+                    | [||] -> failwithf "No tags in %s match %O. Tags: %A" url vr tags
+                    | _ -> 
+                        let tag = matchingVersions |> Array.max |> string 
+                        Mercurial.Handling.getHash repoCacheFolder tag
 
         | ModuleResolver.Origin.HttpLink _ -> return ""
     }
@@ -95,7 +117,8 @@ let private rawGistFileUrl owner project fileName =
 /// Gets a dependencies file from the remote source and tries to parse it.
 let downloadDependenciesFile(force,rootPath,groupName,parserF,remoteFile:ModuleResolver.ResolvedSourceFile) = async {
     match remoteFile.Origin with
-    | ModuleResolver.GitLink _ -> return parserF ""
+    | ModuleResolver.GitLink _
+    | ModuleResolver.MercurialLink _ -> return parserF ""
     | _ ->
         let fi = FileInfo(remoteFile.Name)
 
@@ -110,7 +133,8 @@ let downloadDependenciesFile(force,rootPath,groupName,parserF,remoteFile:ModuleR
                 rawGistFileUrl remoteFile.Owner remoteFile.Project dependenciesFileName
             | ModuleResolver.HttpLink url -> 
                 url.Replace(remoteFile.Name,Constants.DependenciesFileName)
-            | ModuleResolver.GitLink _ -> failwithf "Can't compute dependencies file url for %O" remoteFile
+            | ModuleResolver.GitLink _ 
+            | ModuleResolver.MercurialLink _ -> failwithf "Can't compute dependencies file url for %O" remoteFile
 
         let auth = 
             try
@@ -215,6 +239,51 @@ let downloadRemoteFiles(remoteFile:ResolvedSourceFile,destination) = async {
                     msg |> Seq.iter (tracefn "%s")
             with 
             | exn -> failwithf "Could not run \"%s\".\r\nError: %s" tCommand exn.Message
+    | Origin.MercurialLink (RemoteMercurialOrigin cloneUrl), _
+    | Origin.MercurialLink (LocalMercurialOrigin cloneUrl), _ ->
+        if not <| Utils.isMatchingPlatform remoteFile.OperatingSystemRestriction then () else
+        let cloneUrl = cloneUrl.TrimEnd('/')
+        
+        let repoCacheFolder = Path.Combine(Constants.MercurialRepoCacheFolder,remoteFile.Project)
+        let repoFolder = Path.Combine(destination,remoteFile.Project)
+        let cacheCloneUrl = "file:///" + repoCacheFolder
+
+        Paket.Mercurial.Handling.fetchCache repoCacheFolder cloneUrl 
+        Paket.Mercurial.Handling.checkoutToPaketFolder repoFolder cloneUrl cacheCloneUrl remoteFile.Commit
+
+        // TODO DEDUP
+        match remoteFile.Command with
+        | None -> ()
+        | Some command ->
+            
+            let command,args =
+                match command.IndexOf ' ' with
+                | -1 -> command,""
+                | p -> command.Substring(0,p),command.Substring(p+1)
+            
+            let command = 
+                if Path.IsPathRooted command then command else
+                let p = Path.Combine(repoFolder,command)
+                if File.Exists p then p else command
+            let tCommand = if String.IsNullOrEmpty args then command else command + " " + args
+
+            try
+                tracefn "Running \"%s\"" tCommand
+                let processResult = 
+                    ExecProcessAndReturnMessages (fun info ->
+                        info.FileName <- command
+                        info.WorkingDirectory <- repoFolder
+                        info.Arguments <- args) gitTimeOut
+
+                let ok,msg,errors = processResult.OK,processResult.Messages,toLines processResult.Errors
+               
+                let errorText = toLines msg + Environment.NewLine + errors
+                if not ok then failwith errorText
+                if ok && msg.Count = 0 then tracefn "Done." else
+                if verbose then
+                    msg |> Seq.iter (tracefn "%s")
+            with 
+            | exn -> failwithf "Could not run \"%s\".\r\nError: %s" tCommand exn.Message
     | Origin.GistLink, Constants.FullProjectSourceFileName ->
         let fi = FileInfo(destination)
         let projectPath = fi.Directory.FullName
@@ -264,11 +333,12 @@ let downloadRemoteFiles(remoteFile:ResolvedSourceFile,destination) = async {
 }
 
 let DownloadSourceFiles(rootPath, groupName, force, sourceFiles:ModuleResolver.ResolvedSourceFile list) =
-    let remoteFiles,gitRepos = 
+    let remoteFiles, gitOrHgRepos = 
         sourceFiles
-        |> List.partition (fun x -> match x.Origin with | GitLink _ -> false | _ -> true)
+        |> List.partition (fun x -> match x.Origin with | GitLink _ | MercurialLink _ -> false | _ -> true)
 
-    gitRepos
+    gitOrHgRepos
+    |> List.where (fun repo -> match repo.Origin with | GitLink _ -> true | _ -> false)
     |> List.map (fun gitRepo ->
         async {
             let repoFolder = gitRepo.FilePath(rootPath,groupName)
@@ -292,6 +362,34 @@ let DownloadSourceFiles(rootPath, groupName, force, sourceFiles:ModuleResolver.R
                 verbosefn "%s is already up-to-date." repoFolder
             else
                 do! downloadRemoteFiles(gitRepo,destination) 
+        })
+    |> Async.Parallel
+    |> Async.RunSynchronously
+    |> ignore
+ 
+    // TODO DEDUP WITH HOF
+    gitOrHgRepos
+    |> List.where (fun repo -> match repo.Origin with | MercurialLink _ -> true | _ -> false)
+    |> List.map (fun mercurialRepo ->
+        async {
+            let repoFolder = mercurialRepo.FilePath(rootPath,groupName)
+            let destination = DirectoryInfo(repoFolder).Parent.FullName
+
+            let isInCorrectVersion =
+                if force then false 
+                else if not <| Directory.Exists repoFolder then false
+                else
+                    let hash = Mercurial.Handling.getCurrentHash repoFolder
+                    match mercurialRepo.Command, mercurialRepo.PackagePath with
+                    | Some _, Some path when not (DirectoryInfo(repoFolder + path).Exists) ->
+                        false
+                    | _ ->
+                        hash = mercurialRepo.Commit
+
+            if isInCorrectVersion then
+                verbosefn "%s is already up-to-date." repoFolder
+            else
+                do! downloadRemoteFiles(mercurialRepo,destination) 
         })
     |> Async.Parallel
     |> Async.RunSynchronously

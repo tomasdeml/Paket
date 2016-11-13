@@ -28,6 +28,7 @@ type Dependencies(dependenciesFileName: string) =
         emptyDir (Constants.UserNuGetPackagesFolder)
         emptyDir (Constants.NuGetCacheFolder)
         emptyDir (Constants.GitRepoCacheFolder)
+        emptyDir (Constants.MercurialRepoCacheFolder)
 
     /// Tries to locate the paket.dependencies file in the current folder or a parent folder.
     static member Locate(): Dependencies = Dependencies.Locate(Directory.GetCurrentDirectory())

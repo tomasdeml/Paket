@@ -6,11 +6,13 @@ open System.IO
 open Paket.Domain
 open Paket.Requirements
 open Paket.Git.Handling
+open Paket.Mercurial.Handling
 
 type Origin = 
 | GitHubLink 
 | GistLink
 | GitLink of GitLinkOrigin
+| MercurialLink of MercurialLinkOrigin
 | HttpLink of string
 
 
@@ -57,6 +59,8 @@ type UnresolvedSource =
             sprintf "http %s%s %s" url v this.Name
         | GitLink (RemoteGitOrigin url) -> url
         | GitLink (LocalGitOrigin path) -> path
+        | MercurialLink (RemoteMercurialOrigin url) -> url
+        | MercurialLink (LocalMercurialOrigin path) -> path
         | _ ->
             let link = 
                 match this.Origin with
@@ -73,6 +77,8 @@ type UnresolvedSource =
         match this.Origin with
         | GitLink (LocalGitOrigin path) -> path
         | GitLink (RemoteGitOrigin url) -> url
+        | MercurialLink (LocalMercurialOrigin path) -> path
+        | MercurialLink (RemoteMercurialOrigin url) -> url
         | _ -> failwithf "invalid linktype %A" this.Origin
 
     member this.FilePath(root,groupName) = this.ComputeFilePath(root,groupName,this.Name)

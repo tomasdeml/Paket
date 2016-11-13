@@ -45,6 +45,7 @@
     <StartArguments>remove nuget Autofac</StartArguments>
     <StartWorkingDirectory>D:\temp\Paket-1652</StartWorkingDirectory>
     <StartArguments>restore -v --keep-unused-packages</StartArguments>
+    <StartArguments>-v update</StartArguments>
     <StartWorkingDirectory>D:\Root\Dokumenty\Visual Studio 2015\Projects\PaketSpike\</StartWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">

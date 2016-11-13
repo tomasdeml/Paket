@@ -27,6 +27,8 @@
     <Compile Include="$(PaketCoreSourcesDir)\Xml.fs" />
     <Compile Include="$(PaketCoreSourcesDir)\GitCommandHelper.fs" />
     <Compile Include="$(PaketCoreSourcesDir)\GitHandling.fs" />
+    <Compile Include="$(PaketCoreSourcesDir)\MercurialCommandHelper.fs" />
+    <Compile Include="$(PaketCoreSourcesDir)\MercurialHandling.fs" />
     <Compile Include="$(PaketCoreSourcesDir)\ConfigFile.fs" />
     <Compile Include="$(PaketCoreSourcesDir)\Cache.fs" />
     <Compile Include="$(PaketCoreSourcesDir)\Cultures.fs" />

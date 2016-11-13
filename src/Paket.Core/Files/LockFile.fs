@@ -5,6 +5,7 @@ open System.Collections.Generic
 open System.IO
 open Paket.Domain
 open Paket.Git.Handling
+open Paket.Mercurial.Handling
 open Paket.Logging
 open Paket.PackageResolver
 open Paket.ModuleResolver
@@ -138,6 +139,7 @@ module LockFileSerializer =
                         yield "GITHUB"
                         updateHasReported.Remove (HttpLink "") |> ignore
                         updateHasReported.Remove (GitLink (RemoteGitOrigin"")) |> ignore
+                        updateHasReported.Remove (MercurialLink (RemoteMercurialOrigin "")) |> ignore
                         updateHasReported.Remove GistLink |> ignore
                         updateHasReported.Add GitHubLink
                     yield sprintf "  remote: %s/%s" owner project
@@ -148,7 +150,18 @@ module LockFileSerializer =
                         updateHasReported.Remove GitHubLink |> ignore
                         updateHasReported.Remove GistLink |> ignore
                         updateHasReported.Remove (HttpLink "") |> ignore
+                        updateHasReported.Remove (MercurialLink (RemoteMercurialOrigin "")) |> ignore
                         updateHasReported.Add (GitLink (RemoteGitOrigin""))
+                    yield sprintf "  remote: " + url
+                | MercurialLink (LocalMercurialOrigin  url)
+                | MercurialLink (RemoteMercurialOrigin url) ->
+                    if not (updateHasReported.Contains(MercurialLink(RemoteMercurialOrigin""))) then
+                        yield "MERCURIAL"
+                        updateHasReported.Remove (GitLink (RemoteGitOrigin"")) |> ignore
+                        updateHasReported.Remove GitHubLink |> ignore
+                        updateHasReported.Remove GistLink |> ignore
+                        updateHasReported.Remove (HttpLink "") |> ignore
+                        updateHasReported.Add (MercurialLink (RemoteMercurialOrigin ""))
                     yield sprintf "  remote: " + url
                
                 | GistLink -> 
@@ -157,6 +170,7 @@ module LockFileSerializer =
                         updateHasReported.Remove GitHubLink |> ignore
                         updateHasReported.Remove (HttpLink "") |> ignore
                         updateHasReported.Remove (GitLink (RemoteGitOrigin"")) |> ignore
+                        updateHasReported.Remove (MercurialLink (RemoteMercurialOrigin "")) |> ignore
                         updateHasReported.Add GistLink
                     yield sprintf "  remote: %s/%s" owner project
                 | HttpLink url ->
@@ -165,6 +179,7 @@ module LockFileSerializer =
                         updateHasReported.Remove GitHubLink |> ignore
                         updateHasReported.Remove GistLink |> ignore
                         updateHasReported.Remove (GitLink (RemoteGitOrigin"")) |> ignore
+                        updateHasReported.Remove (MercurialLink (RemoteMercurialOrigin "")) |> ignore
                         updateHasReported.Add (HttpLink "")
                     yield sprintf "  remote: " + url
 
@@ -241,6 +256,7 @@ module LockFileParser =
         | _, "HTTP" -> RepositoryType "HTTP"
         | _, "GIST" -> RepositoryType "GIST"
         | _, "GIT" -> RepositoryType "GIT"
+        | _, "MERCURIAL" -> RepositoryType "MERCURIAL"
         | _, "NUGET" -> RepositoryType "NUGET"
         | _, "GITHUB" -> RepositoryType "GITHUB"
         | Some "NUGET", String.StartsWith "remote:" trimmed -> Remote(PackageSource.Parse("source " + trimmed.Trim()).ToString())
@@ -329,6 +345,7 @@ module LockFileParser =
         | Some "GITHUB", trimmed -> SourceFile(GitHubLink, trimmed)
         | Some "GIST", trimmed -> SourceFile(GistLink, trimmed)
         | Some "GIT", trimmed -> SourceFile(GitLink(RemoteGitOrigin""), trimmed)
+        | Some "MERCURIAL", trimmed -> SourceFile(MercurialLink(RemoteMercurialOrigin ""), trimmed)
         | Some "HTTP", trimmed  -> SourceFile(HttpLink(String.Empty), trimmed)
         | Some _, _ -> failwithf "unknown repository type %s." line
         | _ -> failwithf "unknown lock file format %s" line
@@ -530,6 +547,23 @@ module LockFileParser =
                                 SourceFiles = { Commit = details.Replace("(","").Replace(")","")
                                                 Owner = owner
                                                 Origin = GitLink origin
+                                                Project = project
+                                                Dependencies = Set.empty
+                                                Command = buildCommand
+                                                OperatingSystemRestriction = operatingSystemRestriction
+                                                PackagePath = packagePath
+                                                Name = "" 
+                                                AuthKey = None } :: currentGroup.SourceFiles }::otherGroups
+                        | _ ->  failwithf "invalid remote details %A" currentGroup.RemoteUrl
+                    | MercurialLink _ ->
+                        match currentGroup.RemoteUrl with
+                        | Some cloneUrl ->
+                            let owner,commit,project,origin,buildCommand,operatingSystemRestriction,packagePath = Mercurial.Handling.extractUrlParts cloneUrl
+                            { currentGroup with
+                                LastWasPackage = false
+                                SourceFiles = { Commit = details.Replace("(","").Replace(")","")
+                                                Owner = owner
+                                                Origin = MercurialLink origin
                                                 Project = project
                                                 Dependencies = Set.empty
                                                 Command = buildCommand

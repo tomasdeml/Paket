@@ -362,7 +362,14 @@ module DependenciesFileParser =
         match trimmed with
         | String.StartsWith "group" _ as trimmed -> Some (Group(trimmed.Replace("group ","")))
         | _ -> None
-    
+
+    let private (|Mercurial|_|) (line:string) =
+        let trimmed = line.Trim() 
+        match trimmed with
+        | String.StartsWith "mercurial" _ as trimmed  ->
+            Some (Mercurial(trimmed.Substring("mercurial".Length + 1)))
+        | _ -> None 
+
     let parsePackage(sources,parent,name,version,rest:string) =
         let prereleases,optionsText =
             if rest.Contains ":" then
@@ -495,6 +502,35 @@ module DependenciesFileParser =
                           PackagePath = packagePath
                           Name = ""
                           Origin = GitLink origin
+                          AuthKey = None }
+                    let sources = 
+                        match packagePath with
+                        | None -> current.Sources
+                        | Some path -> 
+                            let root = ""
+                            let fullPath = remoteFile.ComputeFilePath(root,current.Name,path)
+                            let relative = (createRelativePath root fullPath).Replace("\\","/")
+                            LocalNuGet(relative,None) :: current.Sources |> List.distinct 
+                    lineNo, { current with RemoteFiles = current.RemoteFiles @ [remoteFile]; Sources = sources }::other
+                | Mercurial(mercurialConfig) ->
+                    let owner,vr,project,origin,buildCommand,operatingSystemRestriction,packagePath = Mercurial.Handling.extractUrlParts mercurialConfig
+                    let remoteFile : UnresolvedSource = 
+                        { Owner = owner
+                          Project = project
+                          Version = 
+                            match vr with
+                            | None -> VersionRestriction.NoVersionRestriction
+                            | Some x -> 
+                                try 
+                                    let vr = parseVersionRequirement x
+                                    VersionRestriction.VersionRequirement vr
+                                with 
+                                | _ -> VersionRestriction.Concrete x
+                          Command = buildCommand
+                          OperatingSystemRestriction = operatingSystemRestriction
+                          PackagePath = packagePath
+                          Name = ""
+                          Origin = MercurialLink origin
                           AuthKey = None }
                     let sources = 
                         match packagePath with

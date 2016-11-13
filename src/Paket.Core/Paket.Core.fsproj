@@ -99,6 +99,8 @@
     <Compile Include="Xml.fs" />
     <Compile Include="GitCommandHelper.fs" />
     <Compile Include="GitHandling.fs" />
+    <Compile Include="MercurialCommandHelper.fs" />
+    <Compile Include="MercurialHandling.fs" />
     <Compile Include="ConfigFile.fs" />
     <Compile Include="Cache.fs" />
     <Compile Include="Cultures.fs" />

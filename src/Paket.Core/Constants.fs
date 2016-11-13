@@ -81,6 +81,7 @@ let LocalRootForTempData =
       fallback
 
 let GitRepoCacheFolder = Path.Combine(LocalRootForTempData,".paket","git","db")
+let MercurialRepoCacheFolder = Path.Combine(LocalRootForTempData,".paket","hg","db") // Hg is way shorter than Mercurial
 
 let [<Literal>] GlobalPackagesFolderEnvironmentKey = "NUGET_PACKAGES"
 let UserNuGetPackagesFolder = 
