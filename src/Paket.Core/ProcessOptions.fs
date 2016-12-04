@@ -23,7 +23,8 @@ type InstallerOptions =
       GenerateLoadScripts : bool
       ProvidedScriptTypes : string list
       ProvidedFrameworks  : string list
-      TouchAffectedRefs : bool }
+      TouchAffectedRefs : bool
+      KeepUnknownPackages : bool }
 
     static member Default =
         { Force = false
@@ -36,9 +37,10 @@ type InstallerOptions =
           GenerateLoadScripts = false
           ProvidedScriptTypes = []
           ProvidedFrameworks = []
-          TouchAffectedRefs = false }
+          TouchAffectedRefs = false 
+          KeepUnknownPackages = false }
 
-    static member CreateLegacyOptions(force, redirects, cleanBindingRedirects, createNewBindingFiles, semVerUpdateMode, touchAffectedRefs, generateLoadScripts, providedFrameworks, providedScriptTypes, alternativeProjectRoot) =
+    static member CreateLegacyOptions(force, redirects, cleanBindingRedirects, createNewBindingFiles, semVerUpdateMode, touchAffectedRefs, generateLoadScripts, providedFrameworks, providedScriptTypes, alternativeProjectRoot, keepUnknownPackages) =
         { InstallerOptions.Default with
             Force = force
             CreateNewBindingFiles = createNewBindingFiles
@@ -49,7 +51,8 @@ type InstallerOptions =
             ProvidedFrameworks = providedFrameworks
             ProvidedScriptTypes = providedScriptTypes
             GenerateLoadScripts = generateLoadScripts
-            AlternativeProjectRoot = alternativeProjectRoot}
+            AlternativeProjectRoot = alternativeProjectRoot
+            KeepUnknownPackages = keepUnknownPackages }
 
 type UpdaterOptions =
     { Common : InstallerOptions

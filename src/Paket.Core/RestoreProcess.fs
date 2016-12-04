@@ -170,7 +170,7 @@ let createAlternativeNuGetConfig alternativeConfigFileName =
 </configuration>"""
     File.WriteAllText(alternativeConfigFileName,config)
 
-let Restore(dependenciesFileName,projectFile,force,group,referencesFileNames,ignoreChecks,failOnChecks) = 
+let Restore(dependenciesFileName,projectFile,force,group,referencesFileNames,ignoreChecks,failOnChecks,keepUnknownPackages) = 
     let lockFileName = DependenciesFile.FindLockfile dependenciesFileName
     let localFileName = DependenciesFile.FindLocalfile dependenciesFileName
     let root = lockFileName.Directory.FullName
@@ -303,4 +303,4 @@ let Restore(dependenciesFileName,projectFile,force,group,referencesFileNames,ign
     if groupsToGenerate <> [] then
         LoadingScripts.ScriptGeneration.executeCommand groupsToGenerate (DirectoryInfo dependenciesFile.RootPath) [] []
 
-    GarbageCollection.CleanUp(root, dependenciesFile, lockFile)
+    GarbageCollection.CleanUp(root, dependenciesFile, lockFile, keepUnknownPackages)

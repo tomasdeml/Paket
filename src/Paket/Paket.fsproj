@@ -38,6 +38,14 @@
     <StartWorkingDirectory>C:\dev\src\Paket\integrationtests\scenarios\loading-scripts\dependencies-file-flag\temp</StartWorkingDirectory>
     <StartArguments>convert-from-nuget</StartArguments>
     <StartWorkingDirectory>c:\users\lr\documents\visual studio 2017\Projects\PaketTest</StartWorkingDirectory>
+    <StartArguments>install</StartArguments>
+    <StartWorkingDirectory>C:\PROJ\FAKE\</StartWorkingDirectory>
+    <StartArguments>install --createnewbindingfiles</StartArguments>
+    <StartWorkingDirectory>D:\temp\pakkit2</StartWorkingDirectory>
+    <StartArguments>remove nuget Autofac</StartArguments>
+    <StartWorkingDirectory>D:\temp\Paket-1652</StartWorkingDirectory>
+    <StartArguments>restore -v --keep-unused-packages</StartArguments>
+    <StartWorkingDirectory>D:\Root\Dokumenty\Visual Studio 2015\Projects\PaketSpike\</StartWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <Optimize>true</Optimize>

@@ -220,7 +220,7 @@ let SmartInstall(dependenciesFile, updateMode, options : UpdaterOptions) =
     if not options.NoInstall then
         let forceTouch = hasChanged && options.Common.TouchAffectedRefs
         InstallProcess.InstallIntoProjects(options.Common, forceTouch, dependenciesFile, lockFile, projectsAndReferences, updatedGroups)
-        GarbageCollection.CleanUp(root, dependenciesFile, lockFile)
+        GarbageCollection.CleanUp(root, dependenciesFile, lockFile, options.Common.KeepUnknownPackages)
 
     let shouldGenerateScripts =
         options.Common.GenerateLoadScripts ||

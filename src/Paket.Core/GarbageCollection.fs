@@ -99,7 +99,7 @@ let cleanupCaches (dependenciesFile:DependenciesFile) (lockFile:LockFile) =
 
 
 /// Remove all packages from the packages folder which are not part of the lock file.
-let CleanUp(root, dependenciesFile:DependenciesFile, lockFile) =
-    deleteUnusedPackages root lockFile
-
+let CleanUp(root, dependenciesFile:DependenciesFile, lockFile, keepUnknownPackages) =
+    if not keepUnknownPackages then deleteUnusedPackages root lockFile 
+    else verbosefn "Skipping garbage collection of unused packages" 
     cleanupCaches dependenciesFile lockFile

@@ -7,25 +7,25 @@ open Paket.Domain
 open Paket.Logging
 open InstallProcess
 
-let private removePackageFromProject (project : ProjectFile) groupName package = 
+let private removePackageFromProject (project : ProjectFile) groupName package =
     project.FindOrCreateReferencesFile()
         .RemoveNuGetReference(groupName,package)
         .Save()
 
-let private remove removeFromProjects dependenciesFileName alternativeProjectRoot groupName (package: PackageName) force installAfter = 
+let private remove removeFromProjects dependenciesFileName alternativeProjectRoot groupName (package: PackageName) force installAfter keepUnknownPackages =
     let root = Path.GetDirectoryName dependenciesFileName
     let allProjects = ProjectFile.FindAllProjects root
-    
+
     removeFromProjects allProjects
-            
+
     // check we have it removed from all paket.references files
     let stillInstalled =
-        allProjects 
-        |> Seq.exists (fun project -> 
+        allProjects
+        |> Seq.exists (fun project ->
             let proj = FileInfo(project.FileName)
             match ProjectFile.FindReferencesFile proj with
-            | None -> false 
-            | Some fileName -> 
+            | None -> false
+            | Some fileName ->
                 let refFile = ReferencesFile.FromFile fileName
                 match refFile.Groups |> Map.tryFind groupName with
                 | None -> false
@@ -40,18 +40,18 @@ let private remove removeFromProjects dependenciesFileName alternativeProjectRoo
         if stillInstalled then exisitingDependenciesFile,oldLockFile,false else
         let dependenciesFile = exisitingDependenciesFile.Remove(groupName,package)
         dependenciesFile.Save()
-        
+
         let lockFile,hasChanged,_ = UpdateProcess.SelectiveUpdate(dependenciesFile, alternativeProjectRoot, PackageResolver.UpdateMode.Install,SemVerUpdateMode.NoRestriction,force)
         dependenciesFile,lockFile,hasChanged
-    
+
     if installAfter then
         let updatedGroups = Map.add groupName 0 Map.empty
-        InstallProcess.Install(InstallerOptions.CreateLegacyOptions(force, false, false, false, SemVerUpdateMode.NoRestriction, false, false, [], [], None), false, dependenciesFile, lockFile, updatedGroups)
-        GarbageCollection.CleanUp(root, dependenciesFile, lockFile)
+        InstallProcess.Install(InstallerOptions.CreateLegacyOptions(force, false, false, false, SemVerUpdateMode.NoRestriction, false, false, [], [], None, keepUnknownPackages), false, dependenciesFile, lockFile, updatedGroups)
+        GarbageCollection.CleanUp(root, dependenciesFile, lockFile, keepUnknownPackages)
 
 /// Removes a package with the option to remove it from a specified project.
-let RemoveFromProject(dependenciesFileName, groupName, packageName:PackageName, force, projectName, installAfter) =
-    let groupName = 
+let RemoveFromProject(dependenciesFileName, groupName, packageName:PackageName, force, projectName, installAfter, keepUnknownPackages) =
+    let groupName =
         match groupName with
         | None -> Constants.MainDependencyGroup
         | Some name -> GroupName name
@@ -65,11 +65,11 @@ let RemoveFromProject(dependenciesFileName, groupName, packageName:PackageName, 
         | None ->
             traceErrorfn "Could not remove package %O from specified project %s. Project not found" packageName projectName
     let alternativeProjectRoot = None
-    remove removeFromSpecifiedProject dependenciesFileName alternativeProjectRoot groupName packageName force installAfter
+    remove removeFromSpecifiedProject dependenciesFileName alternativeProjectRoot groupName packageName force installAfter keepUnknownPackages
 
 /// Remove a package with the option to interactively remove it from multiple projects.
-let Remove(dependenciesFileName, groupName, packageName:PackageName, force, interactive, installAfter) =
-    let groupName = 
+let Remove(dependenciesFileName, groupName, packageName:PackageName, force, interactive, installAfter, keepUnknownPackages) =
+    let groupName =
         match groupName with
         | None -> Constants.MainDependencyGroup
         | Some name -> GroupName name
@@ -81,4 +81,5 @@ let Remove(dependenciesFileName, groupName, packageName:PackageName, force, inte
                     removePackageFromProject project groupName packageName
 
     let alternativeProjectRoot = None
-    remove removeFromProjects dependenciesFileName alternativeProjectRoot groupName packageName force installAfter
+    remove removeFromProjects dependenciesFileName alternativeProjectRoot groupName packageName force installAfter keepUnknownPackages
+

@@ -51,6 +51,7 @@ let add (results : ParseResults<_>) =
     let cleanBindingRedirects = results.Contains <@ AddArgs.Clean_Redirects @>
     let group = results.TryGetResult <@ AddArgs.Group @>
     let noInstall = results.Contains <@ AddArgs.No_Install @>
+    let keepUnknownPackages = results.Contains <@ AddArgs.Keep_Unknown_Packages @>
     let semVerUpdateMode =
         if results.Contains <@ AddArgs.Keep_Patch @> then SemVerUpdateMode.KeepPatch else
         if results.Contains <@ AddArgs.Keep_Minor @> then SemVerUpdateMode.KeepMinor else
@@ -60,10 +61,10 @@ let add (results : ParseResults<_>) =
 
     match results.TryGetResult <@ AddArgs.Project @> with
     | Some projectName ->
-        Dependencies.Locate().AddToProject(group, packageName, version, force, redirects, cleanBindingRedirects, createNewBindingFiles, projectName, noInstall |> not, semVerUpdateMode, touchAffectedRefs)
+        Dependencies.Locate().AddToProject(group, packageName, version, force, redirects, cleanBindingRedirects, createNewBindingFiles, projectName, noInstall |> not, semVerUpdateMode, touchAffectedRefs, keepUnknownPackages)
     | None ->
         let interactive = results.Contains <@ AddArgs.Interactive @>
-        Dependencies.Locate().Add(group, packageName, version, force, redirects, cleanBindingRedirects, createNewBindingFiles, interactive, noInstall |> not, semVerUpdateMode, touchAffectedRefs)
+        Dependencies.Locate().Add(group, packageName, version, force, redirects, cleanBindingRedirects, createNewBindingFiles, interactive, noInstall |> not, semVerUpdateMode, touchAffectedRefs, keepUnknownPackages)
 
 let validateConfig (results : ParseResults<_>) =
     let credential = results.Contains <@ ConfigArgs.AddCredentials @>
@@ -132,6 +133,7 @@ let install (results : ParseResults<_>) =
         if results.Contains <@ InstallArgs.Keep_Major @> then SemVerUpdateMode.KeepMajor else
         SemVerUpdateMode.NoRestriction
     let touchAffectedRefs = results.Contains <@ InstallArgs.Touch_Affected_Refs @>
+    let keepUnknownPackages = results.Contains <@ InstallArgs.Keep_Unknown_Packages @>
 
     Dependencies.Locate().Install(
         force, 
@@ -144,7 +146,8 @@ let install (results : ParseResults<_>) =
         generateLoadScripts, 
         providedFrameworks, 
         providedScriptTypes,
-        alternativeProjectRoot)
+        alternativeProjectRoot,
+        keepUnknownPackages)
 
 let outdated (results : ParseResults<_>) =
     let strict = results.Contains <@ OutdatedArgs.Ignore_Constraints @> |> not
@@ -156,14 +159,15 @@ let remove (results : ParseResults<_>) =
     let packageName = results.GetResult <@ RemoveArgs.Nuget @>
     let force = results.Contains <@ RemoveArgs.Force @>
     let noInstall = results.Contains <@ RemoveArgs.No_Install @>
+    let keepUnknownPackages = results.Contains <@ RemoveArgs.Keep_Unknown_Packages @>
     let group = results.TryGetResult <@ RemoveArgs.Group @>
     match results.TryGetResult <@ RemoveArgs.Project @> with
     | Some projectName ->
         Dependencies.Locate()
-                    .RemoveFromProject(group, packageName, force, projectName, noInstall |> not)
+                    .RemoveFromProject(group, packageName, force, projectName, noInstall |> not, keepUnknownPackages)
     | None ->
         let interactive = results.Contains <@ RemoveArgs.Interactive @>
-        Dependencies.Locate().Remove(group, packageName, force, interactive, noInstall |> not)
+        Dependencies.Locate().Remove(group, packageName, force, interactive, noInstall |> not, keepUnknownPackages)
 
 let restore (results : ParseResults<_>) =
     let force = results.Contains <@ RestoreArgs.Force @>
@@ -174,15 +178,16 @@ let restore (results : ParseResults<_>) =
     let touchAffectedRefs = results.Contains <@ RestoreArgs.Touch_Affected_Refs @>
     let ignoreChecks = results.Contains <@ RestoreArgs.Ignore_Checks @>
     let failOnChecks = results.Contains <@ RestoreArgs.Fail_On_Checks @>
+    let keepUnknownPackages = results.Contains <@ RestoreArgs.Keep_Unknown_Packages @>
     
     match project with
     | Some project ->
-        Dependencies.Locate().Restore(force, group, project, touchAffectedRefs, ignoreChecks, failOnChecks)
+        Dependencies.Locate().Restore(force, group, project, touchAffectedRefs, ignoreChecks, failOnChecks, keepUnknownPackages)
     | None ->
         if List.isEmpty files then 
-            Dependencies.Locate().Restore(force, group, installOnlyReferenced, touchAffectedRefs, ignoreChecks, failOnChecks)
+            Dependencies.Locate().Restore(force, group, installOnlyReferenced, touchAffectedRefs, ignoreChecks, failOnChecks, keepUnknownPackages)
         else 
-            Dependencies.Locate().Restore(force, group, files, touchAffectedRefs, ignoreChecks, failOnChecks)
+            Dependencies.Locate().Restore(force, group, files, touchAffectedRefs, ignoreChecks, failOnChecks, keepUnknownPackages)
 
 let simplify (results : ParseResults<_>) =
     let interactive = results.Contains <@ SimplifyArgs.Interactive @>
@@ -201,21 +206,22 @@ let update (results : ParseResults<_>) =
         if results.Contains <@ UpdateArgs.Keep_Major @> then SemVerUpdateMode.KeepMajor else
         SemVerUpdateMode.NoRestriction
     let touchAffectedRefs = results.Contains <@ UpdateArgs.Touch_Affected_Refs @>
+    let keepUnknownPackages = results.Contains <@ UpdateArgs.Keep_Unknown_Packages @>
     let filter = results.Contains <@ UpdateArgs.Filter @>
 
     match results.TryGetResult <@ UpdateArgs.Nuget @> with
     | Some packageName ->
         let version = results.TryGetResult <@ UpdateArgs.Version @>
         if filter then
-            Dependencies.Locate().UpdateFilteredPackages(group, packageName, version, force, withBindingRedirects, cleanBindingRedirects, createNewBindingFiles, noInstall |> not, semVerUpdateMode, touchAffectedRefs)
+            Dependencies.Locate().UpdateFilteredPackages(group, packageName, version, force, withBindingRedirects, cleanBindingRedirects, createNewBindingFiles, noInstall |> not, semVerUpdateMode, touchAffectedRefs, keepUnknownPackages)
         else
-            Dependencies.Locate().UpdatePackage(group, packageName, version, force, withBindingRedirects, cleanBindingRedirects, createNewBindingFiles, noInstall |> not, semVerUpdateMode, touchAffectedRefs)
+            Dependencies.Locate().UpdatePackage(group, packageName, version, force, withBindingRedirects, cleanBindingRedirects, createNewBindingFiles, noInstall |> not, semVerUpdateMode, touchAffectedRefs, keepUnknownPackages)
     | _ ->
         match group with
         | Some groupName ->
-            Dependencies.Locate().UpdateGroup(groupName, force, withBindingRedirects, cleanBindingRedirects, createNewBindingFiles, noInstall |> not, semVerUpdateMode, touchAffectedRefs)
+            Dependencies.Locate().UpdateGroup(groupName, force, withBindingRedirects, cleanBindingRedirects, createNewBindingFiles, noInstall |> not, semVerUpdateMode, touchAffectedRefs, keepUnknownPackages)
         | None ->
-            Dependencies.Locate().Update(force, withBindingRedirects, cleanBindingRedirects, createNewBindingFiles, noInstall |> not, semVerUpdateMode, touchAffectedRefs)
+            Dependencies.Locate().Update(force, withBindingRedirects, cleanBindingRedirects, createNewBindingFiles, noInstall |> not, semVerUpdateMode, touchAffectedRefs, keepUnknownPackages)
 
 let pack (results : ParseResults<_>) =
     let outputPath = results.GetResult <@ PackArgs.Output @>

@@ -19,6 +19,7 @@ type AddArgs =
     | Keep_Minor
     | Keep_Patch
     | Touch_Affected_Refs
+    | Keep_Unknown_Packages
 with
     interface IArgParserTemplate with
         member this.Usage =
@@ -37,6 +38,7 @@ with
             | Keep_Minor -> "Allows only updates that are not changing the minor version of the NuGet packages."
             | Keep_Patch -> "Allows only updates that are not changing the patch version of the NuGet packages."
             | Touch_Affected_Refs -> "Touches project files referencing packages which are affected, to help incremental build tools detecting the change."
+            | Keep_Unknown_Packages -> "Ignores unknown packages during garbage collection. Useful when managing NuGet packages with nuget.exe."
 
 type ConfigArgs =
     | [<CustomCommandLine("add-credentials")>] AddCredentials of string
@@ -106,6 +108,7 @@ type InstallArgs =
     | [<CustomCommandLine("load-script-framework")>] Load_Script_Framework of target:string
     | [<CustomCommandLine("load-script-type")>] Load_Script_Type of id:string
     | Touch_Affected_Refs
+    | Keep_Unknown_Packages
 with
     interface IArgParserTemplate with
         member this.Usage =
@@ -123,6 +126,7 @@ with
             | Project_Root _ -> "Alternative project root [only used for tooling]."
             | Load_Script_Framework _ -> "Framework identifier to generate scripts for, such as net45 or net4."
             | Load_Script_Type _ -> "Language to generate scripts for, must be one of 'fsx' or 'csx'."
+            | Keep_Unknown_Packages -> "Ignores unknown packages during garbage collection. Useful when managing NuGet packages with nuget.exe."
 
 type OutdatedArgs =
     | Ignore_Constraints
@@ -143,6 +147,7 @@ type RemoveArgs =
     | [<AltCommandLine("-f")>] Force
     | [<AltCommandLine("-i")>] Interactive
     | No_Install
+    | Keep_Unknown_Packages
 with
     interface IArgParserTemplate with
         member this.Usage =
@@ -153,6 +158,7 @@ with
             | Force -> "Forces the download and reinstallation of all packages."
             | Interactive -> "Asks the user for every project if he or she wants to remove the package from the projects's paket.references file. By default every installation of the package is removed."
             | No_Install -> "Skips paket install process (patching of csproj, fsproj, ... files) after the generation of paket.lock file."
+            | Keep_Unknown_Packages -> "Ignores unknown packages during garbage collection. Useful when managing NuGet packages with nuget.exe."
 
 
 type ClearCacheArgs =
@@ -167,6 +173,7 @@ type RestoreArgs =
     | [<CustomCommandLine("--touch-affected-refs")>] Touch_Affected_Refs
     | [<CustomCommandLine("--ignore-checks")>] Ignore_Checks
     | [<CustomCommandLine("--fail-on-checks")>] Fail_On_Checks
+    | Keep_Unknown_Packages
     | [<CustomCommandLine("group")>] Group of name:string
     | [<Unique>] Project of file_name:string
     | [<Unique>] References_Files of file_name:string list
@@ -181,6 +188,7 @@ with
             | Ignore_Checks -> "Skips the test if paket.dependencies and paket.lock are in sync."
             | Fail_On_Checks -> "Causes the restore to fail if any of the checks fail."
             | Project(_) -> "Allows to restore dependencies for a project."
+            | Keep_Unknown_Packages -> "Ignores unknown packages during garbage collection. Useful when managing NuGet packages with nuget.exe."
             | References_Files(_) -> "Allows to restore all packages from the given paket.references files."
 
 type SimplifyArgs =
@@ -205,6 +213,7 @@ type UpdateArgs =
     | Keep_Patch
     | Filter
     | Touch_Affected_Refs
+    | Keep_Unknown_Packages
 with
     interface IArgParserTemplate with
         member this.Usage =
@@ -222,6 +231,7 @@ with
             | Keep_Patch -> "Allows only updates that are not changing the patch version of the NuGet packages."
             | Filter -> "Treat the nuget parameter as a regex to filter packages rather than an exact match."
             | Touch_Affected_Refs -> "Touches project files referencing packages which are affected, to help incremental build tools detecting the change."
+            | Keep_Unknown_Packages -> "Ignores unknown packages during garbage collection. Useful when managing NuGet packages with nuget.exe."
 
 type FindPackagesArgs =
     | [<CustomCommandLine("searchtext")>] SearchText of text:string
