@@ -1204,7 +1204,7 @@ group Dev
     git https://github.com/fsprojects/Paket.VisualStudio.git os : Windows, Build:"build.cmd NuGet", Packages: "/tempFolder/Any where"
     git https://github.com/fsprojects/Paket.git Packages: "/temp Folder/Any where", os: OSX
     git https://github.com/forki/nupkgtest.git nugetsource Packages: /source/
-    git https://github.com/forki/nupkgtest.git build build:"build.cmd", Packages: /source/
+    git https://github.com/forki/nupkgtest.git "build" build:"build.cmd", Packages: /source/
 
     nuget Argu
     nuget Paket.Core

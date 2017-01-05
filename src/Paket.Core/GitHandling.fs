@@ -63,7 +63,7 @@ let extractUrlParts (gitConfig:string) =
             | commit::options -> 
                 let startPos = gitConfig.Substring(part.Length).IndexOf(commit)
                 let options = gitConfig.Substring(part.Length + startPos + commit.Length)
-                part,Some commit,options
+                part,Some (commit.Trim('\"')),options
             | _ -> gitConfig,None,""
         | _ -> gitConfig,None,""
     
