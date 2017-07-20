@@ -9,6 +9,7 @@ open System.Text
 open System.Collections.Generic
 open Paket.Logging
 open Paket
+open Paket.Utils
 
 /// Arguments on the Mono executable
 let mutable monoArguments = ""
@@ -211,11 +212,13 @@ let inline toLines text = separated Environment.NewLine text
 
 /// Runs git.exe with the given command in the given repository directory.
 let runGitCommand repositoryDir command = 
+    let repositoryDirIsBareCacheRepo = String.startsWithIgnoreCase (Path.GetFullPath(Constants.GitRepoCacheFolder)) (Path.GetFullPath(repositoryDir))
+    let gitDir = if repositoryDirIsBareCacheRepo |> not then Path.Combine(repositoryDir,".git") else repositoryDir
     let processResult = 
         ExecProcessAndReturnMessages (fun info ->
           info.FileName <- gitPath
           info.WorkingDirectory <- repositoryDir
-          info.Arguments <- command) gitTimeOut
+          info.Arguments <- sprintf "--git-dir %s %s" (quote gitDir) command) gitTimeOut
 
     processResult.OK,processResult.Messages,toLines processResult.Errors
 
