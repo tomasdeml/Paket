@@ -1,3 +1,9 @@
+#### 4.8.0.1 - 20.07.2017
+* BUGFIX: Paket works correctly when launched from within a git hook
+
+#### 4.8.0.0 - 04.05.2017
+* Support for Mercurial dependencies
+
 #### 4.8.0 - 25.04.2017
 * Bootstrapper: Made pushing changes from Git dependency repositories easier - https://github.com/fsprojects/Paket/pull/2226
 
