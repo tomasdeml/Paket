@@ -212,8 +212,13 @@ let inline toLines text = separated Environment.NewLine text
 
 /// Runs git.exe with the given command in the given repository directory.
 let runGitCommand repositoryDir command = 
-    let repositoryDirIsBareCacheRepo = String.startsWithIgnoreCase (Path.GetFullPath(Constants.GitRepoCacheFolder)) (Path.GetFullPath(repositoryDir))
-    let gitDir = if repositoryDirIsBareCacheRepo |> not then Path.Combine(repositoryDir,".git") else repositoryDir
+    let mutable gitDir = null
+    if not <| String.IsNullOrWhiteSpace(repositoryDir) then
+        let repositoryDirIsBareCacheRepo = String.startsWithIgnoreCase (Path.GetFullPath(Constants.GitRepoCacheFolder)) (Path.GetFullPath(repositoryDir))
+        gitDir <- if not <| repositoryDirIsBareCacheRepo then Path.Combine(repositoryDir,".git") else repositoryDir
+    else
+        gitDir <- ""
+        
     let processResult = 
         ExecProcessAndReturnMessages (fun info ->
           info.FileName <- gitPath
