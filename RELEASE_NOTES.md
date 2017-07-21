@@ -1,5 +1,8 @@
+#### 4.8.0.2 - 21.07.2017
+* BUGFIX: Paket `update` command works correctly when fetching refs from upstream git repository (regression from previous version)
+
 #### 4.8.0.1 - 20.07.2017
-* BUGFIX: Paket works correctly when launched from within a git hook
+* BUGFIX: Paket `restore` commmand works correctly for git dependencies when launched from within a git hook
 
 #### 4.8.0.0 - 04.05.2017
 * Support for Mercurial dependencies
