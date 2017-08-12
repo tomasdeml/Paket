@@ -69,16 +69,21 @@ let AppDataFolder =
 let PaketConfigFolder   = Path.Combine(AppDataFolder, "Paket")
 let PaketConfigFile     = Path.Combine(PaketConfigFolder, "paket.config")
 
+let [<Literal>] LocalRootForTempDataEnvironmentKey = "PAKET_TEMP_DATA"
 let LocalRootForTempData =
-  match Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) |> toOption with
-  | Some s -> s
+  match Environment.GetEnvironmentVariable(LocalRootForTempDataEnvironmentKey) |> toOption with
+  | Some path -> 
+      path.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar)
   | None ->
-    match Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) |> toOption with
-    | Some s -> s
-    | None ->
-      let fallback = Path.GetFullPath (".paket")
-      Logging.traceWarnfn "Could not detect a root for our (user specific) temporary files. Try to set the 'HOME' or 'LocalAppData' environment variable!. Using '%s' instead" fallback
-      fallback
+      match Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) |> toOption with
+      | Some s -> s
+      | None ->
+        match Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) |> toOption with
+        | Some s -> s
+        | None ->
+          let fallback = Path.GetFullPath (".paket")
+          Logging.traceWarnfn "Could not detect a root for our (user specific) temporary files. Try to set the 'HOME' or 'LocalAppData' environment variable!. Using '%s' instead" fallback
+          fallback
 
 let GitRepoCacheFolder = Path.Combine(LocalRootForTempData,".paket","git","db")
 let MercurialRepoCacheFolder = Path.Combine(LocalRootForTempData,".paket","hg","db") // Hg is way shorter than Mercurial
