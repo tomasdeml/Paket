@@ -1,3 +1,6 @@
+#### 4.8.0.3 - 12.08.2017
+* Allowed overriding of the Local Temp Data Root with the PAKET_TEMP_DATA environment variable
+
 #### 4.8.0.2 - 21.07.2017
 * BUGFIX: Paket `update` command works correctly when fetching refs from upstream git repository (regression from previous version)
 
